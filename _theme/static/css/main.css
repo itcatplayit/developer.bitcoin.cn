@@ -55,7 +55,7 @@ body {
   color: #FFFFFF;
 }
 .hero-nav .reference::after {
-  content: 'Learn more';
+  content: '查看更多...';
   position: absolute;
   bottom: 38px;
   left: 50%;
