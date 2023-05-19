@@ -1,0 +1,120 @@
+{% extends "basic/layout.html" %}
+
+{% block htmltitle %}
+    <meta charset="utf-8">
+    <meta name="description" content="This site aims to provide the docs
+                you need to understand Bitcoin and start building Bitcoin-based
+                applications." />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta property="og:title" content="{{ title }} &#8212; Bitcoin" />
+    <meta property="og:description" content="This site aims to provide the
+    docs you need to understand Bitcoin and start building Bitcoin-based
+    applications." />
+    <meta property="og:image" content="https://developer.bitcoin.org/_static/bitcoindocs.png" />
+    <meta property="og:type" content="website" />
+    <link href="https://fonts.googleapis.com/css?family=Titillium+Web:400,700&display=swap" rel="stylesheet">
+    {{ super() }}
+{% endblock %}
+
+{# Ideally we want the default css first, then bootstrap followed by any custom css
+   This way the custom css can override any bootstrap formatting if needed #}
+
+{% set css_files = [
+    '_static/sphinxbootstrap4.css',
+    '_static/bootstrap-4.3.1-dist/css/bootstrap.min.css'
+] + css_files %}
+
+{%- block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="{{ pathto('_static/bootstrap-4.3.1-dist/js/bootstrap.min.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/sphinxbootstrap4.js', 1) }}"></script>
+{%- endblock %}
+
+{%- macro sphinxsidebar() %}
+  {% if pagename != 'index' %}
+      {%- if render_sidebar %}
+      <div class="sphinxsidebar d-none d-md-block">
+        <div class="sphinxsidebarwrapper">
+          {%- block sidebarlogo %}{%- endblock %}
+          {%- if sidebars != None %}
+            {#- new style sidebar: explicitly include/exclude templates #}
+            {%- for sidebartemplate in sidebars %}
+            {%- include sidebartemplate %}
+            {%- endfor %}
+          {%- else %}
+            {#- old style sidebars: using blocks -- should be deprecated #}
+            {%- block sidebartoc %}
+            {%- include "globaltoc.html" %}
+            {%- endblock %}
+            {%- block sidebarrel %}
+            {%- include "relations.html" %}
+            {%- endblock %}
+            {%- if customsidebar %}
+            {%- include customsidebar %}
+            {%- endif %}
+            {%- block sidebarsourcelink %}
+            {%- include "sourcelink.html" %}
+            {%- endblock %}
+          {%- endif %}
+        </div>
+      </div>
+      {%- endif %}
+      {% endif %}
+{%- endmacro %}
+
+{% macro navBar() %}
+{% include "navbar.html" %}
+{% endmacro %}
+
+{% macro hero() %}
+{% include "hero.html" %}
+{% endmacro %}
+
+{% macro breadcrumb() %}
+  {% include "breadcrumb.html" %}
+{% endmacro %}
+
+{%- block relbar1 %}{% endblock %}
+{%- block relbar2 %}{% endblock %}
+
+{%- block header %}
+  {{ navBar() }}
+  {% if pagename == 'index' %}
+    {{ hero() }}
+  {% endif %}
+{%- endblock %}
+
+
+{%- block footer %}
+{% include "footer.html" %}
+{%- endblock %}
+
+{%- block content %}
+  {%- block breadcrumb1 %}{{breadcrumb()}}{% endblock %}
+  <div class="main container-fluid">
+    <div class="content-container">
+      <div class="row">
+        {%- block sidebar1 %} {% if theme_show_sidebar|tobool and not theme_sidebar_right|tobool %}{{ sphinxsidebar() }}{% endif %} {% endblock %}
+  
+        <div class="document">
+        {%- block document %}
+        <div class="documentwrapper">
+        {%- if render_sidebar %}
+          <div class="bodywrapper">
+        {%- endif %}
+            <div class="body">
+              {% block body %} {% endblock %}
+            </div>
+        {%- if render_sidebar %}
+          </div>
+        {%- endif %}
+        </div>
+    {%- endblock %}
+      </div>
+      {%- block sidebar2 %}{% if theme_show_sidebar|tobool and theme_sidebar_right|tobool %}{{ sphinxsidebar() }}{% endif %}{% endblock %}
+        <div class="clearer"></div>
+        </div>
+      </div>
+    </div>
+{%- endblock %}
