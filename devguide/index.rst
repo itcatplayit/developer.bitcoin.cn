@@ -1,7 +1,7 @@
 Developer Guides
 ================
 
-Find detailed information about the Bitcoin protocol and related specifications.
+查找有关比特币协议和相关规范的详细信息。
 
 .. toctree::
   :maxdepth: 1
