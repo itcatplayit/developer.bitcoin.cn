@@ -1,81 +1,82 @@
 Block Chain
 ===========
 
-The block chain provides Bitcoin's public ledger, an ordered and timestamped record of transactions. This system is used to protect against double spending and modification of previous transaction records.
+区块链为比特币提供了一个公共账本，按照顺序和时间戳记录交易。该系统可以防止双花和更改历史交易。
 
 Introduction
 ------------
 
-Each full node in the Bitcoin `network <../devguide/p2p_network.html>`__ independently stores a block chain containing only blocks validated by that node. When several nodes all have the same blocks in their block chain, they are considered to be in :term:`consensus <Consensus>`. The validation rules these nodes follow to maintain consensus are called :term:`consensus rules <Consensus rules>`. This section describes many of the consensus rules used by Bitcoin Core.
+
+比特币 `网络 <../devguide/p2p_network.html>`__ 中的每个全节点独立存储的区块链只包含该节点已经验证过的区块。当几个节点在它们的区块链中都包含了同一个区块，此时认为它们 :term:`达成一致 <Consensus>` 。节点之间为了保证一致性所遵循的验证规则别称为 :term:`一致性原则 <Consensus rules>` 。本节将讨论比特币核心使用的多种一致性原则。
 
 .. figure:: /img/dev/en-blockchain-overview.svg
-   :alt: Block Chain Overview
+   :alt: 区块链纵览
 
-   Block Chain Overview
+   区块链纵览
 
-The illustration above shows a simplified version of a block chain. A :term:`block <Block>` of one or more new transactions is collected into the transaction data part of a block. Copies of each transaction are hashed, and the hashes are then paired, hashed, paired again, and hashed again until a single hash remains, the :term:`merkle root <Merkle root>` of a merkle tree.
+上图示意了一个简单版本的区块链。每个 :term:`区块 <Block>` 中包含的一个或多个交易放置在区块的数据区。每笔交易副本被哈希，然后哈希值被配对，被哈希，再次被配对，再次被哈希直到只剩下最后一个哈希，该哈希称为默克尔树(Merkle tree)的 :term:`默克尔根(Merkle root) <Merkle root>` 。
 
-The merkle root is stored in the block header. Each block also stores the hash of the previous block’s header, chaining the blocks together. This ensures a transaction cannot be modified without modifying the block that records it and all following blocks.
+默克尔根保存在区块的头部。每个区块头部还包含前一个区块的头hash，这样就将区块链接起来（前向链表）。这样可以保证交易在不修改后续节点的情况下无法修改当前节点的内容。
 
-Transactions are also chained together. Bitcoin wallet software gives the impression that satoshis are sent from and to wallets, but bitcoins really move from transaction to transaction. Each transaction spends the satoshis previously received in one or more earlier transactions, so the input of one transaction is the output of a previous transaction.
+交易也是被链接在一起。比特币钱包给人的印象是1 satoshis（比特币最小单位，1 Satoshi等于0.00000001比特币）比特币从一个钱包到另一个钱包，但是实际上比特币是从一个交易到另一个交易。每个交易花费之前接收到的一个或多个交易的币，因此一个交易的输入是之前另一个交易的输出。
 
 .. figure:: /img/dev/en-transaction-propagation.svg
-   :alt: Transaction Propagation
+   :alt: 交易传播图
 
-   Transaction Propagation
+   交易传播图
 
-A single transaction can create multiple outputs, as would be the case when sending to multiple addresses, but each output of a particular transaction can only be used as an input once in the block chain. Any subsequent reference is a forbidden double spend—an attempt to spend the same satoshis twice.
+在将交易结果分送多个地址的情形下，一个交易可以产生多个输出，但是一个指定的交易输出只能在整条链中作为输入一次。后续任何的引用都会由于禁止双花导致失败。
 
-Outputs are tied to :term:`transaction identifiers (TXIDs) <Txid>`, which are the hashes of signed transactions.
+输出和 :term:`交易标志符 (TXIDs) <Txid>` 绑定，它是交易的签名。
 
-Because each output of a particular transaction can only be spent once, the outputs of all transactions included in the block chain can be categorized as either :term:`Unspent Transaction Outputs (UTXOs) <UTXO>` or spent transaction outputs. For a payment to be valid, it must only use UTXOs as inputs.
+由于每个输出只能被花费一次，因此区块链中所有的输出可以分为两类： :term:`未花费的输出 (UTXOs) <UTXO>` 和已花费的输出。一个有效的交易，必须使用UTXOs作为输入。
 
-Ignoring coinbase transactions (described later), if the value of a transaction’s outputs exceed its inputs, the transaction will be rejected—but if the inputs exceed the value of the outputs, any difference in value may be claimed as a :term:`transaction fee <Transaction fee>` by the Bitcoin :term:`miner <Mining>` who creates the block containing that transaction. For example, in the illustration above, each transaction spends 10,000 satoshis fewer than it receives from its combined inputs, effectively paying a 10,000 satoshi transaction fee.
+除了基础币交易（后续详述）外，如果交易的输出值大于交易的输入值，这个交易会被拒绝；但是，如果交易的输入值大于交易的输出值，二者的差值则作为 :term:`交易费用 <Transaction fee>` 被挖出包含该交易区块的 :term:`矿工 <Mining>` 占有。举例来说，上图显示的每个交易的输出都比输入少10,000 satoshis，缺少的部分就是作为交易费用的部分。
 
 Proof Of Work
 -------------
 
-The block chain is collaboratively maintained by anonymous peers on the `network <../devguide/p2p_network.html>`__, so Bitcoin requires that each block prove a significant amount of work was invested in its creation to ensure that untrustworthy peers who want to modify past blocks have to work harder than honest peers who only want to add new blocks to the block chain.
+区块链在 `网络 <../devguide/p2p_network.html>`__ 上被匿名节点协作保存，因此比特币要求每个区块都投入一定工作量才能生成，以此来确保不可靠节点想要修改历史块就不得不比那些只想往区块链上添加新块的诚实节点付出更多的努力。
 
-Chaining blocks together makes it impossible to modify transactions included in any block without modifying all subsequent blocks. As a result, the cost to modify a particular block increases with every new block added to the block chain, magnifying the effect of the proof of work.
+链在一起的区块可以保证，如果不更新指定区块的所有后续区块，则无法更新该区块中的交易。因此，更新一个特定区块的代价随着新区块的增加而增加，同时放大了工作量证明的作用。
 
-The :term:`proof of work <Proof of work>` used in Bitcoin takes advantage of the apparently random nature of cryptographic hashes. A good cryptographic hash algorithm converts arbitrary data into a seemingly random number. If the data is modified in any way and the hash re-run, a new seemingly random number is produced, so there is no way to modify the data to make the hash number predictable.
+:term:`工作量证明 <Proof of work>` 利用了密码学哈希结果明显的随机特性。一个好的哈希算法将任意的数据转换成看起来随机的数字。如果输入数据的发生任何的变动，哈希过程重新执行，一个新的随机数就会产生，因此无法通过更新输入数据有目的的预测哈希结果。
 
-To prove you did some extra work to create a block, you must create a hash of the block header which does not exceed a certain value. For example, if the maximum possible hash value is 2256 − 1, you can prove that you tried up to two combinations by producing a hash value less than 2255.
+为了证明节点为了生成区块做了一定的工作，节点必须产生出一个哈希结果不超出指定值的区块头部。比如，如果最大的可能的哈希值的个数为2256-1，可以证明节点平均尝试2次就可以产生一个哈希值小于2255的头部。
 
-In the example given above, you will produce a successful hash on average every other try. You can even estimate the probability that a given hash attempt will generate a number below the :term:`target <nBits>` threshold. Bitcoin assumes a linear probability that the lower it makes the target threshold, the more hash attempts (on average) will need to be tried.
+在上面的例子中，节点几乎每个一次就可以成功一次。同时可以根据指定的 :term:`目标 <nBits>` 门槛，估计一次哈希尝试成功的概率。比特币假定门槛和成功概率是线性关系，门槛越低，平均需要的尝试次数越多。
 
-New blocks will only be added to the block chain if their hash is at least as challenging as a :term:`difficulty <Difficulty>` value expected by the consensus protocol. Every 2,016 blocks, the `network <../devguide/p2p_network.html>`__ uses timestamps stored in each block header to calculate the number of seconds elapsed between generation of the first and last of those last 2,016 blocks. The ideal value is 1,209,600 seconds (two weeks).
+只有当区块的哈希值满足一致性协议指定的 :term:`难度 <Difficulty>` 值时，该区块才会被加入到区块链中。每隔2,016个区块， `网络 <../devguide/p2p_network.html>`__ 利用存储在每个区块头中的时间戳计算产生这2,016各区块的时间间隔。该间隔的理想值为1,209,600秒(两周)。
 
--  If it took fewer than two weeks to generate the 2,016 blocks, the expected difficulty value is increased proportionally (by as much as 300%) so that the next 2,016 blocks should take exactly two weeks to generate if hashes are checked at the same rate.
+- 如果生成2,016个区块花费的实际的间隔小于2周，则期望的难度值会按比例上升（最高300%），由此下一批2,016个区块按相同速率产生，则刚好花费2周的时间。
 
--  If it took more than two weeks to generate the blocks, the expected difficulty value is decreased proportionally (by as much as 75%) for the same reason.
+- 同理，如果实际的间隔大于2周，期望的难度值则会按比例下降（最低到75%）。
 
-(Note: an off-by-one error in the Bitcoin Core implementation causes the difficulty to be updated every 2,01\ *6* blocks using timestamps from only 2,01\ *5* blocks, creating a slight skew.)
+（注意：比特币核心实现中的一个一偏移错误导致使用仅2,01\ *5* 个块的时间戳每2,01\ *6* 个块更新一次，从而产生轻微的偏差。）
 
-Because each block header must hash to a value below the target threshold, and because each block is linked to the block that preceded it, it requires (on average) as much hashing power to propagate a modified block as the entire Bitcoin `network <../devguide/p2p_network.html>`__ expended between the time the original block was created and the present time. Only if you acquired a majority of the `network’s <../devguide/p2p_network.html>`__ hashing power could you reliably execute such a :term:`51 percent attack` against transaction history (although, it should be noted, that even less than 50% of the hashing power still has a good chance of performing such attacks).
+由于每个哈希头都要满足指定的难度值，而且每个区块都会链接它前面的区块，因此更新一个区块（平均来讲）需要付出从该区块创造到当前时刻区块链整体 `网络 <../devguide/p2p_network.html>`__ 算力的总和。因此只有你获得了了 `网络 <../devguide/p2p_network.html>`__ 的大部分算力，才能够可靠的进行51%攻击修改交易历史（但是，需要指出的是，即使少于50%的算力，仍然有很大可能性进行这种攻击）。
 
-The block header provides several easy-to-modify fields, such as a dedicated nonce field, so obtaining new hashes doesn’t require waiting for new transactions. Also, only the 80-byte block header is hashed for proof-of-work, so including a large volume of transaction data in a block does not slow down hashing with extra I/O, and adding additional transaction data only requires the recalculation of the ancestor hashes in the merkle tree.
+区块头部中提供了几个容易更新的字段，比如专门的nonce字段，因此获取新的哈希值并不一定要等待新的交易。同时，只需要对80字节的区块头进行哈希，因此在区块中包含大量的交易不会降低哈希的效率，增加新的交易只需要重算默克尔树。
 
 Block Height And Forking
 ------------------------
 
-Any Bitcoin miner who successfully hashes a block header to a value below the target threshold can add the entire block to the block chain (assuming the block is otherwise valid). These blocks are commonly addressed by their :term:`block height <Block height>`—the number of blocks between them and the first Bitcoin block (block 0, most commonly known as the :term:`genesis block <Genesis block>`). For example, block 2016 is where difficulty could have first been adjusted.
+所有成功挖到新块的矿工都可以把他们的新块添加到区块链中（假定这些区块都是有效的）。这些区块通过它们的 :term:`区块高度 <Block height>` ————当前区块到初始区块（区块0，或者说更有名的称为 :term:`创世块 <Genesis block>`）的区块个数 进行定位。例如，2016是第一个进行难度调整的区块。
 
 .. figure:: /img/dev/en-blockchain-fork.svg
-   :alt: Common And Uncommon Block Chain Forks
+   :alt: 通常区块分叉与罕见区块分叉
 
-   Common And Uncommon Block Chain Forks
+   通常区块分叉与罕见区块分叉
 
-Multiple blocks can all have the same block height, as is common when two or more miners each produce a block at roughly the same time. This creates an apparent :term:`fork <Fork>` in the block chain, as shown in the illustration above.
+由于多个矿工可能几乎同时挖到新区块，因此可能存在多个区块拥有相同区块高度。这种情况下就在区块链中产生了明显的 :term:`分叉 <Fork>` ，如上图所示。
 
-When miners produce simultaneous blocks at the end of the block chain, each node individually chooses which block to accept. In the absence of other considerations, discussed below, nodes usually use the first block they see.
+当几个矿工同时生产出区块，每个节点独立的判断选择接受哪个，在没有其他考虑的情况下，节点通常选择接受他们看到的第一个区块。
 
-Eventually a miner produces another block which attaches to only one of the competing simultaneously-mined blocks. This makes that side of the fork stronger than the other side. Assuming a fork only contains valid blocks, normal peers always follow the most difficult chain to recreate and throw away :term:`stale blocks <Stale block>` belonging to shorter forks. (Stale blocks are also sometimes called orphans or orphan blocks, but those terms are also used for true orphan blocks without a known parent block.)
+最终，一个矿工生产出来了一个区块，它附在了几条并行区块分叉中的一条。这时这条区块就比其他区块更有优势。假设一个分叉只包含有效的区块，正常的节点通常会跟随难度最大的区块继续工作，抛弃其他分叉上的 :term:`失效块 <Stale block>`。（失效块也有时叫孤立块或孤儿区块，但这些术语也用于没有已知父块的真正孤立块。）
 
-Long-term forks are possible if different miners work at cross-purposes, such as some miners diligently working to extend the block chain at the same time other miners are attempting a 51 percent attack to revise transaction history.
+如果不同的矿工出于相反目的工作，例如一些矿工努力扩展区块链，而其他矿工则试图通过51%的攻击来修改交易历史，那么长期分叉是可能的。
 
-Since multiple blocks can have the same height during a block chain fork, block height should not be used as a globally unique identifier. Instead, blocks are usually referenced by the hash of their header (often with the byte order reversed, and in hexadecimal).
+由于可能存在多个分叉，因此区块高度不能作为区块的唯一标识。而是使用头部的哈希值（通常进行字节顺序反转，并用16进制表示）。
 
 Transaction Data
 ----------------
