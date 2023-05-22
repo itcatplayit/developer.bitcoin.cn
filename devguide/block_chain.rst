@@ -81,35 +81,37 @@ Block Height And Forking
 Transaction Data
 ----------------
 
-Every block must include one or more transactions. The first one of these transactions must be a coinbase transaction, also called a generation transaction, which should collect and spend the block reward (comprised of a block subsidy and any transaction fees paid by transactions included in this block).
+每个区块中必须包含一笔到多笔交易。这些交易中的第一笔都是币基础交易，或被称为生成交易，负责搜集和支付区块奖励（包括块补贴和包含在该块中的交易的手续费）。
 
-The UTXO of a coinbase transaction has the special condition that it cannot be spent (used as an input) for at least 100 blocks. This temporarily prevents a miner from spending the transaction fees and block reward from a block that may later be determined to be stale (and therefore the coinbase transaction destroyed) after a block chain fork.
+币基础交易的UTXO有一个特殊条件，即它不能被花费（用作输入）至少100个块。这暂时防止了矿工从区块链分叉后可能被确定为过时无效的区块（因此coinbase交易被破坏）中花费交易费用和区块奖励。
 
-Blocks are not required to include any non-coinbase transactions, but miners almost always do include additional transactions in order to collect their transaction fees.
+区块当中并不强制要求一定有非生成交易，但是矿工为了获取交易手续费通常会包含额外的交易。
 
-All transactions, including the coinbase transaction, are encoded into blocks in binary raw transaction format.
+包含生成交易在内的所有交易，都被编码为二进制原始交易格式包含在区块中。
 
-The raw transaction format is hashed to create the transaction identifier (txid). From these txids, the :term:`merkle tree <Merkle tree>` is constructed by pairing each txid with one other txid and then hashing them together. If there are an odd number of txids, the txid without a partner is hashed with a copy of itself.
+二进制原始交易格式通过hash产生一个交易标志TXIS，Merkle树算法把这些交易组成一对，然后把他们hash在一起，如果这里有奇数各txid，没有txid的交易将会和自己的复制镜像配对；hash的结果之间继续进行配对hash，单独的结果还是和自己配对，这样依次递归，知道剩下唯一的hash结果，Merkle根。
 
-The resulting hashes themselves are each paired with one other hash and hashed together. Any hash without a partner is hashed with itself. The process repeats until only one hash remains, the merkle root.
+对原始交易格式进行哈希运算以创建交易标识符（txid）。根据这些txid，通过将每个txid与另一个txid配对，然后将它们哈希在一起，来构建 :term:`默克尔树 <Merkle tree>`。如果存在奇数个txid，则单独的txid将使用其自身的副本进行哈希运算。
 
-For example, if transactions were merely joined (not hashed), a five-transaction merkle tree would look like the following text diagram:
+生成的哈希本身分别与另一个哈希配对并哈希运算在一起。任何哈希如果没有配对就和它自己进行哈希运算。这个过程持续到仅剩一个哈希，就是默克尔根。
+
+例如，如果交易只是被加入（而不是哈希运算），一个包含5个交易的默克尔树生成过程如下：
 
 ::
 
-          ABCDEEEE .......Merkle root
+          ABCDEEEE .......默克尔根
          /        \
       ABCD        EEEE
      /    \      /
-    AB    CD    EE .......E is paired with itself
+    AB    CD    EE .......E和自身配对
    /  \  /  \  /
-   A  B  C  D  E .........Transactions
+   A  B  C  D  E .........交易
 
-As discussed in the Simplified Payment Verification (SPV) subsection, the merkle tree allows clients to verify for themselves that a transaction was included in a block by obtaining the merkle root from a block header and a list of the intermediate hashes from a full peer. The full peer does not need to be trusted: it is expensive to fake block headers and the intermediate hashes cannot be faked or the verification will fail.
+正如在简化支付验证（SPV）一节讲到的，默克尔树允许客户端通过向相邻完全节点请求区块头部的默克尔根和一系列的中间哈希结果来自己验证交易是否包含在指定区块中。相邻完全节点不一定必须是可信任节点：伪造节点头部是昂贵的，并且中间哈希不能伪造，否则验证将失败。
 
-For example, to verify transaction D was added to the block, an SPV client only needs a copy of the C, AB, and EEEE hashes in addition to the merkle root; the client doesn’t need to know anything about any of the other transactions. If the five transactions in this block were all at the maximum size, downloading the entire block would require over 500,000 bytes—but downloading three hashes plus the block header requires only 140 bytes.
+举例来说，如上图所示，为了验证交易D在区块中，SPV端除了需要默克尔根外，只需要C，以及AB、EEEE哈希的拷贝，此外再不需要知道其他交易的任何内容。如果区块中的这5个交易都达到限定的最大值，那么下载该区块需要超过 500,000 字节，而下载3个哈希值和一个头部仅需要140字节。
 
-Note: If identical txids are found within the same block, there is a possibility that the merkle tree may collide with a block with some or all duplicates removed due to how unbalanced merkle trees are implemented (duplicating the lone hash). Since it is impractical to have separate transactions with identical txids, this does not impose a burden on honest software, but must be checked if the invalid status of a block is to be cached; otherwise, a valid block with the duplicates eliminated could have the same merkle root and block hash, but be rejected by the cached invalid outcome, resulting in security bugs such as `CVE-2012-2459 <https://en.bitcoin.it/wiki/CVEs#CVE-2012-2459>`__.
+注意：如果在同一个块中发现相同的txid，则默克尔树可能会与删除了部分或所有重复项的块发生冲突，这是由于默克尔树的实现方式不平衡（复制单独的哈希）。由于使用相同的txid进行单独的交易是不切实际的，这不会给诚实的节点带来负担，但如果要缓存块的无效状态，则必须进行检查；否则，一个去除重复的有效节点可能和另一个节点有相同的默克尔树和块哈希值，但是因缓存的无效交易被拒绝，导致诸如 `CVE-2012-2459 <https://en.bitcoin.it/wiki/CVEs#CVE-2012-2459>`__ 的安全问题。
 
 Consensus Rule Changes
 ----------------------
