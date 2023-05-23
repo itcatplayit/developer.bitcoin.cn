@@ -1,9 +1,9 @@
-Block Chain
+区块链
 ===========
 
 区块链为比特币提供了一个公共账本，按照顺序和时间戳记录交易。该系统可以防止双花和更改历史交易。
 
-Introduction
+介绍
 ------------
 
 
@@ -33,7 +33,7 @@ Introduction
 
 除了基础币交易（后续详述）外，如果交易的输出值大于交易的输入值，这个交易会被拒绝；但是，如果交易的输入值大于交易的输出值，二者的差值则作为 :term:`交易费用 <Transaction fee>` 被挖出包含该交易区块的 :term:`矿工 <Mining>` 占有。举例来说，上图显示的每个交易的输出都比输入少10,000 satoshis，缺少的部分就是作为交易费用的部分。
 
-Proof Of Work
+工作量证明
 -------------
 
 区块链在 `网络 <../devguide/p2p_network.html>`__ 上被匿名节点协作保存，因此比特币要求每个区块都投入一定工作量才能生成，以此来确保不可靠节点想要修改历史块就不得不比那些只想往区块链上添加新块的诚实节点付出更多的努力。
@@ -58,7 +58,7 @@ Proof Of Work
 
 区块头部中提供了几个容易更新的字段，比如专门的nonce字段，因此获取新的哈希值并不一定要等待新的交易。同时，只需要对80字节的区块头进行哈希，因此在区块中包含大量的交易不会降低哈希的效率，增加新的交易只需要重算默克尔树。
 
-Block Height And Forking
+块高和分叉
 ------------------------
 
 所有成功挖到新块的矿工都可以把他们的新块添加到区块链中（假定这些区块都是有效的）。这些区块通过它们的 :term:`区块高度 <Block height>` ————当前区块到初始区块（区块0，或者说更有名的称为 :term:`创世块 <Genesis block>`）的区块个数 进行定位。例如，2016是第一个进行难度调整的区块。
@@ -78,7 +78,7 @@ Block Height And Forking
 
 由于可能存在多个分叉，因此区块高度不能作为区块的唯一标识。而是使用头部的哈希值（通常进行字节顺序反转，并用16进制表示）。
 
-Transaction Data
+交易数据
 ----------------
 
 每个区块中必须包含一笔到多笔交易。这些交易中的第一笔都是币基础交易，或被称为生成交易，负责搜集和支付区块奖励（包括块补贴和包含在该块中的交易的手续费）。
@@ -113,48 +113,47 @@ Transaction Data
 
 注意：如果在同一个块中发现相同的txid，则默克尔树可能会与删除了部分或所有重复项的块发生冲突，这是由于默克尔树的实现方式不平衡（复制单独的哈希）。由于使用相同的txid进行单独的交易是不切实际的，这不会给诚实的节点带来负担，但如果要缓存块的无效状态，则必须进行检查；否则，一个去除重复的有效节点可能和另一个节点有相同的默克尔树和块哈希值，但是因缓存的无效交易被拒绝，导致诸如 `CVE-2012-2459 <https://en.bitcoin.it/wiki/CVEs#CVE-2012-2459>`__ 的安全问题。
 
-Consensus Rule Changes
+共识规则改变
 ----------------------
 
-To maintain consensus, all full nodes validate blocks using the same consensus rules. However, sometimes the consensus rules are changed to introduce new features or prevent `network <../devguide/p2p_network.html>`__ abuse. When the new rules are implemented, there will likely be a period of time when non-upgraded nodes follow the old rules and upgraded nodes follow the new rules, creating two possible ways consensus can break:
+为了保持一致性，所有的全节点使用相同的一致性规则确认区块的有效性。但是，有时在引入新特性或防止 `网络 <../devguide/p2p_network.html>`__ 滥用时会导致一致性规则的变化。当新的规则实施时，存在一个遵守新旧规则的节点同时存在的时期，此时有两种打破一致性的可能：
 
-1. A block following the new consensus rules is accepted by upgraded nodes but rejected by non-upgraded nodes. For example, a new transaction feature is used within a block: upgraded nodes understand the feature and accept it, but non-upgraded nodes reject it because it violates the old rules.
+1. 一个符合新规则的区块被新的节点接受，但是不能被老的节点接受。比如，区块中使用了新的交易特性，升级的节点理解该特性，并接受它，但是老的节点按照旧规则判断一致性失败拒绝该区块。
 
-2. A block violating the new consensus rules is rejected by upgraded nodes but accepted by non-upgraded nodes. For example, an abusive transaction feature is used within a block: upgraded nodes reject it because it violates the new rules, but non-upgraded nodes accept it because it follows the old rules.
+2. 一个违反新规则的区块被新节点拒绝，但是会被老的节点接受。比如，一个滥用交易的特性在就区块中，该区块被新节点拒绝，但是被老节点接受。
 
-In the first case, rejection by non-upgraded nodes, mining software which gets block chain data from those non-upgraded nodes refuses to build on the same chain as mining software getting data from upgraded nodes. This creates permanently divergent chains—one for non-upgraded nodes and one for upgraded nodes—called a :term:`hard fork <Hard fork>`.
+在第一种情况下，被未升级节点拒绝，从旧节点接受数据的挖矿软件拒绝和从新节点接收数据的挖矿软件工作在相同的区块链。这会产生永久的分歧链，一个针对未升级的节点，一个针对已升级的节点，这被称为 :term:`硬分叉 <Hard fork>`。
 
 .. figure:: /img/dev/en-hard-fork.svg
-   :alt: Hard Fork
+   :alt: 硬分叉
 
-   Hard Fork
+   硬分叉
 
-In the second case, rejection by upgraded nodes, it’s possible to keep the block chain from permanently diverging if upgraded nodes control a majority of the hash rate. That’s because, in this case, non-upgraded nodes will accept as valid all the same blocks as upgraded nodes, so the upgraded nodes can build a stronger chain that the non-upgraded nodes will accept as the best valid block chain. This is called a :term:`soft fork <Soft fork>`.
+在第二种情况下，被升级的节点拒绝，如果升级的节点控制了大部分哈希率，则可以防止块链永久分叉。这是因为，在这种情况下，未升级的节点将接受与升级的节点相同的所有块作为有效块，因此升级的节点可以建立一个更强的链，未升级节点将接受该链作为最佳有效块链。这被称为：:term:`软分叉 <Soft fork>`。
+
 
 .. figure:: /img/dev/en-soft-fork.svg
-   :alt: Soft Fork
+   :alt: 软分叉
 
-   Soft Fork
+   软分叉
 
-Although a fork is an actual divergence in block chains, changes to the consensus rules are often described by their potential to create either a hard or soft fork. For example, “increasing the block size above 1 MB requires a hard fork.” In this example, an actual block chain fork is not required—but it is a possible outcome.
+尽管分叉表示对区块链实际的分裂，但是对一致性规则的改变通常还是会用潜在产生硬分叉或软分叉进行描述。比如“增加区块大小超过1MB需要一次硬分叉”，该例中，并不是真正需要一次区块链的分叉，只是可能而已。
 
-Consensus rule changes may be activated in various ways. During Bitcoin’s first two years, Satoshi Nakamoto performed several soft forks by just releasing the backwards-compatible change in a client that began immediately enforcing the new rule. Multiple soft forks such as `BIP30 <https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki>`__ have been activated via a flag day where the new rule began to be enforced at a preset time or block height. Such forks activated via a flag day are known as :term:`User Activated Soft Forks <UASF>` (UASF) as they are dependent on having sufficient users (nodes) to enforce the new rules after the flag day.
+一致性规则的改变可能通过多种方式引起。在比特币出现的前两年，中本聪通过释放后向兼容的版本改变强制立即使用新规则，进行过多次的软分叉。许多像 `BIP30 <https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki>`__ 这样的软分叉是通过在代码中预先编码指定的一个固定时间或区块高度实现的。这种通过指定固定日期进行分叉的方式称为 :term:`用户发起软分叉（User Activated Soft Forks） <UASF>` (UASF)，它依靠大量的用户节点强制在指定日期后使新规则生效。
 
-Later soft forks waited for a majority of hash rate (typically 75% or 95%) to signal their readiness for enforcing the new consensus rules. Once the signalling threshold has been passed, all nodes will begin enforcing the new rules. Such forks are known as :term:`Miner Activated Soft Forks <MASF>` (MASF) as they are dependent on miners for activation.
+后续的软分叉会等待网络大部分算力（75%或95%）认可使用新的一致性规则。一旦超过认可阈值，所有的节点都会使用新的规则。这种依赖矿工进行分叉的方式称为 :term:`矿工发起软分叉（Miner Activated Soft Forks） <MASF>` (MASF)。
 
-**Resources:** `BIP16 <https://github.com/bitcoin/bips/blob/master/bip-0016.mediawiki>`__, `BIP30 <https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki>`__, and `BIP34 <https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki>`__ were implemented as changes which might have lead to soft forks. `BIP50 <https://github.com/bitcoin/bips/blob/master/bip-0050.mediawiki>`__ describes both an accidental hard fork, resolved by temporary downgrading the capabilities of upgraded nodes, and an intentional hard fork when the temporary downgrade was removed. A document from Gavin Andresen outlines `how future rule changes may be implemented <https://gist.github.com/gavinandresen/2355445>`__.
+**资源:** `BIP16 <https://github.com/bitcoin/bips/blob/master/bip-0016.mediawiki>`__, `BIP30 <https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki>`__, 和 `BIP34 <https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki>`__ 被实现为可能导致软分叉的更改。 `BIP50 <https://github.com/bitcoin/bips/blob/master/bip-0050.mediawiki>`__ 描述了通过临时降级升级节点的功能来解决的意外硬分叉，以及在删除临时降级时有意使用的硬分叉。Gavin Andresen 的一份文件概述了 `如何实现未来的规则更改 <https://gist.github.com/gavinandresen/2355445>`__.
 
-Detecting Forks
+检测分叉
 ---------------
 
-Non-upgraded nodes may use and distribute incorrect information during both types of forks, creating several situations which could lead to financial loss. In particular, non-upgraded nodes may relay and accept transactions that are considered invalid by upgraded nodes and so will never become part of the universally-recognized best block chain. Non-upgraded nodes may also refuse to relay blocks or transactions which have already been added to the best block chain, or soon will be, and so provide incomplete information.
+未升级的节点可能在这两种类型的分叉过程中使用和分发不正确的信息，从而产生可能导致财务损失的几种情况。特别地，未升级的节点可以中继和接受被升级的节点认为无效的交易，因此永远不会成为公认的最佳块链的一部分。未升级的节点也可能拒绝中继已经添加到或即将添加到最佳块链的块或交易，从而提供不完整的信息。
 
-Bitcoin Core includes code that detects a hard fork by looking at block chain proof of work. If a non-upgraded node receives block chain headers demonstrating at least six blocks more proof of work than the best chain it considers valid, the node reports a warning in the `“getnetworkinfo” RPC <../reference/rpc/getnetworkinfo.html>`__ results and runs the ``-alertnotify`` command if set. This warns the operator that the non-upgraded node can’t switch to what is likely the best block chain.
+比特币核心包括通过查看区块链工作量证明来检测硬分叉的代码。如果未升级的节点接收到块链报头，该块链报头证明比其认为有效的最佳链多至少六个块的工作量证明，该节点在 `“getnetworkinfo” RPC <../reference/rpc/getnetworkinfo.html>`__ 结果中报告警告，并运行 ``-alertnotify`` 命令（如果已设置）。这会警告操作员，未升级的节点无法切换到可能是最好的区块链。
 
-Full nodes can also check block and transaction version numbers. If the block or transaction version numbers seen in several recent blocks are higher than the version numbers the node uses, it can assume it doesn’t use the current consensus rules. Bitcoin Core reports this situation through the `“getnetworkinfo” RPC <../reference/rpc/getnetworkinfo.html>`__ and ``-alertnotify`` command if set.
+完整节点还可以检查块和交易版本号。如果在最近的几个块中看到的块或交易版本号高于节点使用的版本号，它可以假设它没有使用当前的共识规则。比特币核心通过 `“getnetworkinfo” RPC <../reference/rpc/getnetworkinfo.html>`__ 和 ``-alertnotify`` 命令（如果设置）报告这种情况。
 
-In either case, block and transaction data should not be relied upon if it comes from a node that apparently isn’t using the current consensus rules.
+在任何一种情况下，如果区块和交易数据来自一个显然没有使用当前共识规则的节点，则不应依赖这些数据。连接到完整节点的SPV客户端可以检测到可能的硬分叉，方法是连接到几个完整节点，并确保它们都在同一条链上，具有相同的块高度，加上或减去几个块，以考虑传输延迟和陈旧块。如果出现分歧，客户端可以断开与具有较弱链的节点的连接。
 
-SPV clients which connect to full nodes can detect a likely hard fork by connecting to several full nodes and ensuring that they’re all on the same chain with the same block height, plus or minus several blocks to account for transmission delays and stale blocks. If there’s a divergence, the client can disconnect from nodes with weaker chains.
-
-SPV clients should also monitor for block and :ref:`transaction version number <term-transaction-version-number>` increases to ensure they process received transactions and create new transactions using the current consensus rules.
+SPV客户端还应监控区块和 :ref:`交易版本号 <term-transaction-version-number>` 的增加，以确保他们处理收到的交易，并使用当前的共识规则创建新的交易。
