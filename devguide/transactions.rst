@@ -1,39 +1,39 @@
-Transactions
+交易
 ============
 
-Transactions let users spend satoshis. Each transaction is constructed out of several parts which enable both simple direct payments and complex transactions. 
+交易使得用户消费聪。每个交易有多个部分组成，既包括简单直接的付款，也包括复杂交易。
 
-Introduction
+介绍
 ------------
 
-This section will describe each part and demonstrate how to use them together to build complete transactions.
+这一部分将会讨论交易的每个部分，并演示如何将它们组合成一个完整的交易。
 
-To keep things simple, this section pretends coinbase transactions do not exist. Coinbase transactions can only be created by Bitcoin miners and they’re an exception to many of the rules listed below. Instead of pointing out the coinbase exception to each rule, we invite you to read about coinbase transactions in the block chain section of this guide.
+为了简单起见，本节假设生成交易不存在。生成交易只能被比特币矿工创建，并且它们对下面的规则存在许多例外情况。这里建议读者在区块链一章了解生成交易的一些细节，本章将不在交易规则后面单独注明对生成交易的例外情况。
 
 .. figure:: /img/dev/en-tx-overview.svg
-   :alt: The Parts Of A Transaction
+   :alt: 一个交易的部分图
 
-   The Parts Of A Transaction
+   一个交易的部分图
 
-The figure above shows the main parts of a Bitcoin transaction. Each transaction has at least one input and one output. Each :term:`input <Input>` spends the satoshis paid to a previous output. Each :term:`output <Output>` then waits as an Unspent Transaction Output (UTXO) until a later input spends it. When your Bitcoin wallet tells you that you have a 10,000 satoshi balance, it really means that you have 10,000 satoshis waiting in one or more UTXOs.
+上图展示了比特币交易的主要部分。每笔交易至少有一个输入和一个输出。每个 :term:`输入 <Input>` 会花费上个输出产生的比特币。每个 :term:`输出 <Output>` 都作为交易未花输出（UTXO）直到被后面作为输入花费掉。当你的比特币钱包告诉你，你还有10000聪的比特币，它实际上说的是你拥有10000聪等着一个或多个UTXO。
 
-Each transaction is prefixed by a four-byte :ref:`transaction version number <term-transaction-version-number>` which tells Bitcoin peers and miners which set of rules to use to validate it. This lets developers create new rules for future transactions without invalidating previous transactions.
+每个交易的前缀为4字节的 :ref:`交易版本号 <term-transaction-version-number>`，告诉比特币用户和矿工，采取什么样的策略验证它。这种设计可以让开发者在不影响旧区块的前提下为未来交易创建新的一致性规则。
 
 .. figure:: /img/dev/en-tx-overview-spending.svg
-   :alt: Spending An Output
+   :alt: 花费输出
 
-   Spending An Output
+   花费输出
 
-An output has an implied index number based on its location in the transaction—the index of the first output is zero. The output also has an amount in satoshis which it pays to a conditional pubkey script. Anyone who can satisfy the conditions of that pubkey script can spend up to the amount of satoshis paid to it.
+一个输出有一个基于其在交易中位置的隐含索引号码，第一个输出的索引是0。同时，输出还有一定数量的比特币，这些比特币会支付给可以满足公钥脚本指定条件的人。任何满足该公钥脚本条件的人可以消费这些比特币。
 
-An input uses a transaction identifier (txid) and an :ref:`output index <term-output-index>` number (often called “vout” for output vector) to identify a particular output to be spent. It also has a signature script which allows it to provide data parameters that satisfy the conditionals in the pubkey script. (The sequence number and locktime are related and will be covered together in a later subsection.)
+一个输入使用交易标识（txid）和 :ref:`输出索引 <term-output-index>` 号（常被称为“vout”，代指输出向量output vector）来区分一个将要使用的输出。同时，它还有一个签名脚本，可以用来提供满足输出公钥脚本的条件的参数。（序列号和锁定时间是相关的，将在后续章节介绍）
 
-The figures below help illustrate how these features are used by showing the workflow Alice uses to send Bob a transaction and which Bob later uses to spend that transaction. Both Alice and Bob will use the most common form of the standard Pay-To-Public-Key-Hash (P2PKH) transaction type. :term:`P2PKH <P2PKH address>` lets Alice spend satoshis to a typical Bitcoin address, and then lets Bob further spend those satoshis using a simple cryptographic :ref:`key pair <term-key-pair>`.
+下面的图片通过展示Alice给Bob一些币然后Bob把币花掉的两笔交易过程，反映出这些特性具体是如何被使用的。Alice和Bob都将使用最常见的Pay-To-Public-Key-Hash (P2PKH)的交易方式。:term:`P2PKH <P2PKH address>` 使Alice将比特币支付给一个地址，然后Bob再使用简单的加密 :ref:`钥对 <term-key-pair>` 继续将这些比特币花掉。
 
 .. figure:: /img/dev/en-creating-p2pkh-output.svg
-   :alt: Creating A P2PKH Public Key Hash To Receive Payment
+   :alt: 创建P2PKH公钥哈希以接收款项
 
-   Creating A P2PKH Public Key Hash To Receive Payment
+   创建P2PKH公钥哈希以接收款项
 
 Bob must first generate a private/public :ref:`key pair <term-key-pair>` before Alice can create the first transaction. Bitcoin uses the Elliptic Curve Digital Signature Algorithm (`ECDSA <https://en.wikipedia.org/wiki/Elliptic_Curve_DSA>`__) with the `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ curve; `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`private keys <Private key>` are 256 bits of random data. A copy of that data is deterministically transformed into an `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`public key <Public key>`. Because the transformation can be reliably repeated later, the public key does not need to be stored.
 
