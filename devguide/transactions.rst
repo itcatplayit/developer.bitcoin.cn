@@ -35,41 +35,41 @@
 
    创建P2PKH公钥哈希以接收款项
 
-Bob must first generate a private/public :ref:`key pair <term-key-pair>` before Alice can create the first transaction. Bitcoin uses the Elliptic Curve Digital Signature Algorithm (`ECDSA <https://en.wikipedia.org/wiki/Elliptic_Curve_DSA>`__) with the `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ curve; `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`private keys <Private key>` are 256 bits of random data. A copy of that data is deterministically transformed into an `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`public key <Public key>`. Because the transformation can be reliably repeated later, the public key does not need to be stored.
+Bob在Alice新建第一交易前，首先要生成一个私有/公共的 :ref:`键值对 <term-key-pair>`。比特币使用椭圆曲线数字签名算法（ `ECDSA <https://en.wikipedia.org/wiki/Elliptic_Curve_DSA>`__ )带有 `secp256k1<http://www.secg.org/sec2-v2.pdf>`__ 曲线； `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`键值对 <Private key>`是一个256bit的随机数。这个数据的拷贝被确定性地转换为一个 `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`公钥 <Public key>`。由于这个转换过程是确定可重复的，因此不需要在本地保存公钥。
 
-The public key (pubkey) is then cryptographically hashed. This pubkey hash can also be reliably repeated later, so it also does not need to be stored. The hash shortens and obfuscates the public key, making manual transcription easier and providing security against unanticipated problems which might allow reconstruction of private keys from public key data at some later point.
+然后对公钥（pubkey）进行加密哈希。这个公钥哈希稍后也可以可靠地重复，因此也不需要存储。哈希缩短并混淆了公钥，使手动抄写变得更容易，并提供了针对意外问题的安全性，这些问题可能允许在以后的某个时候从公钥数据重建私钥。
 
-Bob provides the pubkey hash to Alice. Pubkey hashes are almost always sent encoded as Bitcoin :term:`addresses <Address>`, which are base58-encoded strings containing an address version number, the hash, and an error-detection checksum to catch typos. The address can be transmitted through any medium, including one-way mediums which prevent the spender from communicating with the receiver, and it can be further encoded into another format, such as a QR code containing a :ref:`“bitcoin:” URI <term-bitcoin-uri>`.
+Bob将公钥哈希提供给Alice。公钥哈希几乎总是以比特币 :term:`addresses <Address>` 的形式发送，比特币地址是基于58的编码字符串，包含地址版本号、哈希和错误检测校验和，以捕捉拼写错误。地址可以通过任何介质传输，包括阻止发送者与接收者通信的单向介质，还可以进一步编码为另一种格式，例如包含 :ref:`比特币:” URI <term-bitcoin-uri>` 的二维码。
 
-Once Alice has the address and decodes it back into a standard hash, she can create the first transaction. She creates a standard P2PKH transaction output containing instructions which allow anyone to spend that output if they can prove they control the private key corresponding to Bob’s hashed public key. These instructions are called the :term:`pubkey script <Pubkey script>` or scriptPubKey.
+一旦Alice有了地址并将其解码回标准哈希，她就可以创建第一个交易。她创建了一个标准的P2PKH交易输出，其中包含指令，如果任何人能够证明他们控制了与Bob的哈希公钥相对应的私钥，则允许他们使用该输出。这些指令被称为 :term:`公钥脚本（pubkey script或scriptPubKey） <Pubkey script>` 。
 
-Alice broadcasts the transaction and it is added to the block chain. The `network <../devguide/p2p_network.html>`__ categorizes it as an Unspent Transaction Output (UTXO), and Bob’s wallet software displays it as a spendable balance.
+Alice广播交易并将其添加到块链中。 `网络 <../devguide/p2p_network.html>`__将其归类为未消费交易输出（UTXO），Bob的钱包软件将其显示为可消费余额。
 
-When, some time later, Bob decides to spend the UTXO, he must create an input which references the transaction Alice created by its hash, called a Transaction Identifier (txid), and the specific output she used by its index number (:ref:`output index <term-output-index>`). He must then create a :term:`signature script <Signature script>`—a collection of data parameters which satisfy the conditions Alice placed in the previous output’s pubkey script. Signature scripts are also called scriptSigs.
+一段时间后，当Bob决定使用UTXO时，他必须创建一个引用由其哈希创建的交易Alice的输入，称为交易标识符（txid），以及她使用的特定输出的索引号（:ref:`输出索引 <term-output-index>`）。然后，他必须创建一个签名脚本——一组满足Alice在前一个输出的公钥脚本中设置的条件的数据参数。签名脚本也称为scriptSigs。
 
-Pubkey scripts and signature scripts combine `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ pubkeys and signatures with conditional logic, creating a programmable authorization mechanism.
+公钥脚本和签名脚本将 `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ 公钥和签名与条件逻辑相结合，创建了一个可编程的授权机制。
 
 .. figure:: /img/dev/en-unlocking-p2pkh-output.svg
-   :alt: Unlocking A P2PKH Output For Spending
+   :alt: 解锁P2PKH产出用于支出
 
-   Unlocking A P2PKH Output For Spending
+   解锁P2PKH产出用于支出
 
-For a P2PKH-style output, Bob’s signature script will contain the following two pieces of data:
+对于P2PKH样式的输出，Bob的签名脚本将包含以下两段数据：
 
-1. His full (unhashed) public key, so the pubkey script can check that it hashes to the same value as the pubkey hash provided by Alice.
+1.他的完整（未哈希）公钥，因此公钥脚本可以检查其哈希值是否与Alice提供的公钥哈希值相同。
 
-2. An `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`signature <Signature>` made by using the `ECDSA <https://en.wikipedia.org/wiki/Elliptic_Curve_DSA>`__ cryptographic formula to combine certain transaction data (described below) with Bob’s private key. This lets the pubkey script verify that Bob owns the private key which created the public key.
+2.通过使用 `ECDSA <https://en.wikipedia.org/wiki/Elliptic_Curve_DSA>`__ 密码公式将某些交易数据（如下所述）与Bob的私钥组合而成的 `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ :term:`签名 <Signature>`。这允许公钥脚本验证Bob是否拥有创建公钥的私钥。
 
-Bob’s `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ signature doesn’t just prove Bob controls his private key; it also makes the non-signature-script parts of his transaction tamper-proof so Bob can safely broadcast them over the `peer-to-peer network <../devguide/p2p_network.html>`__.
+Bob的 `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ 签名不仅证明Bob控制了他的私钥；它还使交易中的非签名脚本部分不可篡改，这样Bob就可以通过 `对等网络 <../devguide/p2p_network.html>`__ 安全地进行广播。
 
 .. figure:: /img/dev/en-signing-output-to-spend.svg
-   :alt: Some Things Signed When Spending An Output
+   :alt: 支出产出时一些事项签名
 
-   Some Things Signed When Spending An Output
+   支出产出时一些事项签名
 
-As illustrated in the figure above, the data Bob signs includes the txid and :ref:`output index <term-output-index>` of the previous transaction, the previous output’s pubkey script, the pubkey script Bob creates which will let the next recipient spend this transaction’s output, and the amount of satoshis to spend to the next recipient. In essence, the entire transaction is signed except for any signature scripts, which hold the full public keys and `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ signatures.
+如上图所示，Bob签署的数据包括上一笔交易的txid和 :ref:`输出索引 <term-output-index>`、上一笔输出的公钥脚本、Bob创建的将让下一个接收者花费这笔交易输出的公钥脚本，以及花费给下一个收件人的比特币金额。本质上，除了任何签名脚本之外，整个交易都是签名的，这些脚本包含完整的公钥和 `secp256k1 <http://www.secg.org/sec2-v2.pdf>`__ 签名。
 
-After putting his signature and public key in the signature script, Bob broadcasts the transaction to Bitcoin miners through the `peer-to-peer network <../devguide/p2p_network.html>`__. Each peer and miner independently validates the transaction before broadcasting it further or attempting to include it in a new block of transactions.
+在签名脚本中放入签名和公钥后，Bob通过  `对等网络 <../devguide/p2p_network.html>`__ 向比特币矿工广播交易。在进一步广播事务或尝试将其包括在新的事务块中之前，每个对等方和矿工独立验证事务。
 
 P2PKH Script Validation
 -----------------------
